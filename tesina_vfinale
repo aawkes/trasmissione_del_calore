@@ -165,7 +165,7 @@ it_pol=round(tempo_pol/dt);
 %diagramma di T(x) per t=tempo_pol (it=it_pol)
 hold on
 figure (4)
-title('T(x) al tempo di polarizzazione','FontSize',14);
+title('T(x) al tempo di polimerizzazione','FontSize',14);
 plot(x,Tn(:,it_pol));
 grid on
 legend('(N=11)', '(N=16)', '(N=21)');      
