@@ -175,22 +175,21 @@ hold on
 
 end %questo end si riferisce al for che simula diverse griglie spaziali
 
-
-%confronto dei tre metodi
+%confronto dei tre metodi (per Nodi=21)
 if(flag==false)
-    zita=0;
     %metodo esplicito  
+    zita=0;
     tic
     for it = 1:nt
-        Bm = (( Imod + (1-zita)*A ) *  Tn(:,it) ) - B;
-        Am =  I - ( zita*A );
+        Am = (I-zita.*A);
+        Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
         Tn(:,it+1) = Am\Bm;
     end
     disp ('Tempo di simulazione del metodo esplicito: ')
     toc
       
     figure(3)
-    plot(t,Tn(6,:),'r','LineWidth',3);
+    plot(t,Tn(mezzeria,:),'r','LineWidth',3);
     grid on
     axis([0 t_tot 0 200]);
     xlabel('t (s)','FontSize', 12);
@@ -201,35 +200,34 @@ if(flag==false)
     zita=1;
     tic
     for it = 1:nt
-    Bm = (( Imod + (1-zita)*A ) *  Tn(:,it) ) - B;
-    Am =  I - ( zita*A );
-    Tn(:,it+1) = Am\Bm;
+        Am = (I-zita.*A);
+        Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
+        Tn(:,it+1) = Am\Bm;
     end
     disp ('Tempo di simulazione del metodo implicito: ')
     toc
     
     hold on
-    plot(t,Tn(6,:),'b','LineWidth',3);
+    plot(t,Tn(mezzeria,:),'b','LineWidth',3);
     grid on
     axis([0 t_tot 0 200]);
     xlabel('t (s)','FontSize', 12);
     ylabel('T (°C)','FontSize', 12);
     set(gca,'FontSize',14);
 
-
     %metodo di Crank-Nicolson
     zita=1/2;
     tic
     for it = 1:nt
-        Bm = (( Imod + (1-zita)*A ) *  Tn(:,it) ) - B;
-        Am =  I - ( zita*A );
+        Am = (I-zita.*A);
+        Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
         Tn(:,it+1) = Am\Bm;
     end
     disp ('Tempo di simulazione del metodo C-N: ')
     toc
         
     hold on
-    plot(t,Tn(6,:),'g','LineWidth',3);
+    plot(t,Tn(mezzeria,:),'g','LineWidth',3);
     grid on
     axis([0 t_tot 0 200]);
     xlabel('t (s)','FontSize', 12);
@@ -238,4 +236,3 @@ if(flag==false)
     legend('Metodo esplicito','Metodo implicito','Metodo C-N')
     hold off
 end
-
