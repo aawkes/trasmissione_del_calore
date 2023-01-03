@@ -7,232 +7,232 @@ clc
 
 for j=0:2 %sono simulati i casi con 1, 2 e 3 nodi interni ad ogni layer
 
-%dati geometrici
-s=15e-3; %m
-slm=3e-3; %m
-sls=3e-3; %m
-
-%lastra di metallo
-rholm=7817; %kg/m^3
-clm=461; %J/K*Kg
-klm= 14.4; %w/mK
-%circuito integrato
-rhols=1000; %kg/m^3
-cls=1500; %J/K*Kg
-kls= 0.30; %w/mK
-ksum=klm+kls;
-
-%dati utili
-alm=klm/(rholm*clm);    %alpha relativo alla lastra metallica
-als=kls/(rhols*cls);    %alpha relativo al circuito integrato
-Text=200; %°C
-T0=20; %°C
-n_layer=5;
-nodi_interni=1+j;
-Nodi=(nodi_interni*n_layer)+(n_layer-1)+2
-
-flag=false; %quando è false, opera il confronto tra i metodi numerici
-
-%discretizzazione temporale e spaziale
-x=linspace(0,s,Nodi);
-dx=x(2)-x(1);
-
-%inizializzazione matrice dei coefficienti e dei termini noti
-A=zeros(Nodi,Nodi);
-B=zeros(Nodi,1);
-
-%passo temporale provvisiorio
-dt=1;
-
-%passo temporale di instabilità per il metodo esplicito (condizione più
-%restrittiva tra le varie famiglie di nodi); stabile se dt<dt_inst
-dt_inst = (dx^2)/(2*alm); %s
-
-%altri parametri utili dipenenti da dt
-Foxlm=(alm*dt)/(dx^2);
-Foxls=(als*dt)/(dx^2);
-beta=(2*dt)/(dx^2*(rhols*cls+rholm*clm));
-
-%vettore B
-B(1)=-200;
-B(end)=-200;
-
-%matrice A
-%nodi interni
-c=0;
-met=true;
-for i=2:Nodi-1 %prima e ultima riga della matrice A vanno lasciate a 0 (famiglia A)
-    if(c<nodi_interni) % il nodo è interno ad un layer metallico o di stampato
-        c=c+1;
-        if(met) %all'interno del layer di metallo (famiglia B)
-            A(i,i)=-2*Foxlm;
-            A(i,i-1)=Foxlm;
-            A(i,i+1)=Foxlm;
-        else %all'interno del layer di circuito stampato (famiglia C)
-            A(i,i)=-2*Foxls;
-            A(i,i-1)=Foxls;
-            A(i,i+1)=Foxls;  
-        end
-    else %il nodo è di interfaccia
-        c=0;
-        if(met) %lo strato di prima era metallico; interfaccia metallo/circuito stampato (famiglia D)
-            met=false;
-            A(i,i)=-beta*ksum;
-            A(i,i-1)=beta*klm;
-            A(i,i+1)=beta*kls;
-        else %lo strato di prima era di stampato; interfaccia circuito stampato/metallo (famiglia E)
-            met=true;
-            A(i,i)=-beta*ksum;
-            A(i,i-1)=beta*kls;
-            A(i,i+1)=beta*klm;
-        end
-    end
-end
-
-
-%transitorio
-
-%definiamo la matrice Tn; ogni colonna descrive il campo di temperatura nei 
-%nodi ad un certo istante di tempo (la prima è all'istante t=0, l'ultima 
-%all'istante t=n_t*dt)
-%inizializziamo la prima colonna di Tn a T0=20°C
-Tn=ones(Nodi,1)*T0; 
-
-t_tot=350; %tempo della simulazione
-
-zita=1; %switch del metodo: 1 implicito, 0 esplicito, 1/2 C-N
-
-%numero di step temporali (arrotondato all'intero superiore, quindi il
-%tempo della simulazione effettivo può risultare maggiore di t_tot)
-nt=ceil(t_tot/dt);
-%vettore tempo
-t = 0:dt:nt*dt;
-I=speye(size(A)); %matrice identità (sparsa per alleggerire l'onere computazionale)
-
-%Imod deve avere prima e ultima riga nulle,
-%compatibilmente con le condizioni al contorno del I tipo
-Imod=I;
-Imod(1,:)=0;
-Imod(end,:)=0;
-
-%variabili utili per il 1 punto
-mezzeria=ceil((Nodi+1)/2) %è il punto centrale dell'array
-polimerizzazione=false;   %è un flag che notifica se è raggiunta la temperatura di polimerizzazione dal piano di mezzerìa
-
-%per calcolare il campo T ad ogni istante vanno definite Am e Bm ad ogni istante temporale it
-for it=1:nt
-    Am=(I-zita.*A);
-    Bm=((Imod+(1-zita).*A )*Tn(:,it))-B; %man mano si costruisce Bm avendo il vettore tentativo ben noto
-                                         %all'inizio è un vettore colonna di 20°C e step by step viene aggiornato                                 
-    Tn(:,it+1)=Am\Bm;                    %la colonna successiva della matrice Tn è valutata con un metodo diretto
+    %dati geometrici
+    s=15e-3; %m
+    slm=3e-3; %m
+    sls=3e-3; %m
     
-    %soluzione primo punto
-    if Tn(mezzeria,it+1)>170 && polimerizzazione==false
-        polimerizzazione=true;
-        if (abs(Tn(mezzeria,it)-170)<abs(Tn(mezzeria,it+1)-170)) %temperatura che si avvicina di più a 170°C
-            tempo_pol=it*dt;
-        else
-            tempo_pol=(it+1)*dt;
+    %lastra di metallo
+    rholm=7817; %kg/m^3
+    clm=461; %J/K*Kg
+    klm= 14.4; %w/mK
+    %circuito integrato
+    rhols=1000; %kg/m^3
+    cls=1500; %J/K*Kg
+    kls= 0.30; %w/mK
+    ksum=klm+kls;
+    
+    %dati utili
+    alm=klm/(rholm*clm);    %alpha relativo alla lastra metallica
+    als=kls/(rhols*cls);    %alpha relativo al circuito integrato
+    Text=200; %°C
+    T0=20; %°C
+    n_layer=5;
+    nodi_interni=1+j;
+    Nodi=(nodi_interni*n_layer)+(n_layer-1)+2
+    
+    flag=false; %quando è false, opera il confronto tra i metodi numerici
+    
+    %discretizzazione temporale e spaziale
+    x=linspace(0,s,Nodi);
+    dx=x(2)-x(1);
+    
+    %inizializzazione matrice dei coefficienti e dei termini noti
+    A=zeros(Nodi,Nodi);
+    B=zeros(Nodi,1);
+    
+    %passo temporale provvisiorio
+    dt=1;
+    
+    %passo temporale di instabilità per il metodo esplicito (condizione più
+    %restrittiva tra le varie famiglie di nodi); stabile se dt<dt_inst
+    dt_inst = (dx^2)/(2*alm); %s
+    
+    %altri parametri utili dipenenti da dt
+    Foxlm=(alm*dt)/(dx^2);
+    Foxls=(als*dt)/(dx^2);
+    beta=(2*dt)/(dx^2*(rhols*cls+rholm*clm));
+    
+    %vettore B
+    B(1)=-200;
+    B(end)=-200;
+    
+    %matrice A
+    %nodi interni
+    c=0;
+    met=true;
+    for i=2:Nodi-1 %prima e ultima riga della matrice A vanno lasciate a 0 (famiglia A)
+        if(c<nodi_interni) % il nodo è interno ad un layer metallico o di stampato
+            c=c+1;
+            if(met) %all'interno del layer di metallo (famiglia B)
+                A(i,i)=-2*Foxlm;
+                A(i,i-1)=Foxlm;
+                A(i,i+1)=Foxlm;
+            else %all'interno del layer di circuito stampato (famiglia C)
+                A(i,i)=-2*Foxls;
+                A(i,i-1)=Foxls;
+                A(i,i+1)=Foxls;  
+            end
+        else %il nodo è di interfaccia
+            c=0;
+            if(met) %lo strato di prima era metallico; interfaccia metallo/circuito stampato (famiglia D)
+                met=false;
+                A(i,i)=-beta*ksum;
+                A(i,i-1)=beta*klm;
+                A(i,i+1)=beta*kls;
+            else %lo strato di prima era di stampato; interfaccia circuito stampato/metallo (famiglia E)
+                met=true;
+                A(i,i)=-beta*ksum;
+                A(i,i-1)=beta*kls;
+                A(i,i+1)=beta*klm;
+            end
         end
-        disp('il piano di mezzeria raggiunge i 170°C dopo [s]')
-        disp(tempo_pol)
     end
-
-figure(1)  %mostra come varia la temperatura nel tempo lungo la lastra
-    plot(x,Tn(:,it+1));
-    axis([0 s T0 Text]);
-    legend('T(t)');
-    xlabel('x (m)','FontSize', 14);
-    ylabel('T (°C)','FontSize', 14);
-    set(gca,'FontSize',14);
-    title({'t (s)',(it * dt)},'FontSize',14);
-
-end
-
-%diagramma della soluzione a diversi istanti di tempo
-figure(2)
-plot(x,Tn(:,ceil(nt/4)),x,Tn(:,ceil(2*nt/4)),x,Tn(:,ceil(3*nt/4)));
-grid on
-grid minor
-legend( 't = 1/4 t_{tot}(N=11)', 't = 2/4 t_{tot}(N=11)','t = 3/4 t_{tot}(N=11)', ...
-        't = 1/4 t_{tot}(N=16)', 't = 2/4 t_{tot}(N=16)','t = 3/4 t_{tot}(N=16)', ...
-        't = 1/4 t_{tot}(N=21)', 't = 2/4 t_{tot}(N=21)','t = 3/4 t_{tot}(N=21)');
-xlabel('x (m)');
-ylabel('T (°C)');
-
-it_pol=round(tempo_pol/dt);
-
-%diagramma di T(x) per t=tempo_pol (it=it_pol)
-hold on
-figure (4)
-title('T(x) al tempo di polimerizzazione','FontSize',14);
-plot(x,Tn(:,it_pol));
-grid on
-legend('(N=11)', '(N=16)', '(N=21)');      
-xlabel('x (m)');
-ylabel('T (°C)');
-hold on
+    
+    
+    %transitorio
+    
+    %definiamo la matrice Tn; ogni colonna descrive il campo di temperatura nei 
+    %nodi ad un certo istante di tempo (la prima è all'istante t=0, l'ultima 
+    %all'istante t=n_t*dt)
+    %inizializziamo la prima colonna di Tn a T0=20°C
+    Tn=ones(Nodi,1)*T0; 
+    
+    t_tot=350; %tempo della simulazione
+    
+    zita=1; %switch del metodo: 1 implicito, 0 esplicito, 1/2 C-N
+    
+    %numero di step temporali (arrotondato all'intero superiore, quindi il
+    %tempo della simulazione effettivo può risultare maggiore di t_tot)
+    nt=ceil(t_tot/dt);
+    %vettore tempo
+    t = 0:dt:nt*dt;
+    I=speye(size(A)); %matrice identità (sparsa per alleggerire l'onere computazionale)
+    
+    %Imod deve avere prima e ultima riga nulle,
+    %compatibilmente con le condizioni al contorno del I tipo
+    Imod=I;
+    Imod(1,:)=0;
+    Imod(end,:)=0;
+    
+    %variabili utili per il 1 punto
+    mezzeria=ceil((Nodi+1)/2) %è il punto centrale dell'array
+    polimerizzazione=false;   %è un flag che notifica se è raggiunta la temperatura di polimerizzazione dal piano di mezzerìa
+    
+    %per calcolare il campo T ad ogni istante vanno definite Am e Bm ad ogni istante temporale it
+    for it=1:nt
+        Am=(I-zita.*A);
+        Bm=((Imod+(1-zita).*A )*Tn(:,it))-B; %man mano si costruisce Bm avendo il vettore tentativo ben noto
+                                             %all'inizio è un vettore colonna di 20°C e step by step viene aggiornato                                 
+        Tn(:,it+1)=Am\Bm;                    %la colonna successiva della matrice Tn è valutata con un metodo diretto
+        
+        %soluzione primo punto
+        if Tn(mezzeria,it+1)>170 && polimerizzazione==false
+            polimerizzazione=true;
+            if (abs(Tn(mezzeria,it)-170)<abs(Tn(mezzeria,it+1)-170)) %temperatura che si avvicina di più a 170°C
+                tempo_pol=it*dt;
+            else
+                tempo_pol=(it+1)*dt;
+            end
+            disp('il piano di mezzeria raggiunge i 170°C dopo [s]')
+            disp(tempo_pol)
+        end
+    
+    figure(1)  %mostra come varia la temperatura nel tempo lungo la lastra
+        plot(x,Tn(:,it+1));
+        axis([0 s T0 Text]);
+        legend('T(t)');
+        xlabel('x (m)','FontSize', 14);
+        ylabel('T (°C)','FontSize', 14);
+        set(gca,'FontSize',14);
+        title({'t (s)',(it * dt)},'FontSize',14);
+    
+    end
+    
+    %diagramma della soluzione a diversi istanti di tempo
+    figure(2)
+    plot(x,Tn(:,ceil(nt/4)),x,Tn(:,ceil(2*nt/4)),x,Tn(:,ceil(3*nt/4)));
+    grid on
+    grid minor
+    legend( 't = 1/4 t_{tot}(N=11)', 't = 2/4 t_{tot}(N=11)','t = 3/4 t_{tot}(N=11)', ...
+            't = 1/4 t_{tot}(N=16)', 't = 2/4 t_{tot}(N=16)','t = 3/4 t_{tot}(N=16)', ...
+            't = 1/4 t_{tot}(N=21)', 't = 2/4 t_{tot}(N=21)','t = 3/4 t_{tot}(N=21)');
+    xlabel('x (m)');
+    ylabel('T (°C)');
+    
+    it_pol=round(tempo_pol/dt);
+    
+    %diagramma di T(x) per t=tempo_pol (it=it_pol)
+    hold on
+    figure (4)
+    title('T(x) al tempo di polimerizzazione','FontSize',14);
+    plot(x,Tn(:,it_pol));
+    grid on
+    legend('(N=11)', '(N=16)', '(N=21)');      
+    xlabel('x (m)');
+    ylabel('T (°C)');
+    hold on
+    
+    %confronto dei tre metodi (per Nodi=11)
+    if(flag==false && j==0)
+        %metodo esplicito  
+        zita=0;
+        tic
+        for it = 1:nt
+            Am = (I-zita.*A);
+            Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
+            Tn(:,it+1) = Am\Bm;
+        end
+        disp ('Tempo di simulazione del metodo esplicito: ')
+        toc
+          
+        figure(3)
+        plot(t,Tn(mezzeria,:),'r','LineWidth',3);
+        grid on
+        axis([0 t_tot 0 200]);
+        xlabel('t (s)','FontSize', 12);
+        ylabel('T (°C)','FontSize', 12);
+        set(gca,'FontSize',14);     
+    
+        %metodo implicito
+        zita=1;
+        tic
+        for it = 1:nt
+            Am = (I-zita.*A);
+            Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
+            Tn(:,it+1) = Am\Bm;
+        end
+        disp ('Tempo di simulazione del metodo implicito: ')
+        toc
+        
+        hold on
+        plot(t,Tn(mezzeria,:),'b','LineWidth',3);
+        grid on
+        axis([0 t_tot 0 200]);
+        xlabel('t (s)','FontSize', 12);
+        ylabel('T (°C)','FontSize', 12);
+        set(gca,'FontSize',14);
+    
+        %metodo di Crank-Nicolson
+        zita=1/2;
+        tic
+        for it = 1:nt
+            Am = (I-zita.*A);
+            Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
+            Tn(:,it+1) = Am\Bm;
+        end
+        disp ('Tempo di simulazione del metodo C-N: ')
+        toc
+            
+        hold on
+        plot(t,Tn(mezzeria,:),'g','LineWidth',3);
+        grid on
+        axis([0 t_tot 0 200]);
+        xlabel('t (s)','FontSize', 12);
+        ylabel('T (°C)','FontSize', 12);
+        set(gca,'FontSize',14);
+        legend('Metodo esplicito','Metodo implicito','Metodo C-N')
+        hold off
+    end
 
 end %questo end si riferisce al for che simula diverse griglie spaziali
-
-%confronto dei tre metodi (per Nodi=21)
-if(flag==false)
-    %metodo esplicito  
-    zita=0;
-    tic
-    for it = 1:nt
-        Am = (I-zita.*A);
-        Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
-        Tn(:,it+1) = Am\Bm;
-    end
-    disp ('Tempo di simulazione del metodo esplicito: ')
-    toc
-      
-    figure(3)
-    plot(t,Tn(mezzeria,:),'r','LineWidth',3);
-    grid on
-    axis([0 t_tot 0 200]);
-    xlabel('t (s)','FontSize', 12);
-    ylabel('T (°C)','FontSize', 12);
-    set(gca,'FontSize',14);     
-
-    %metodo implicito
-    zita=1;
-    tic
-    for it = 1:nt
-        Am = (I-zita.*A);
-        Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
-        Tn(:,it+1) = Am\Bm;
-    end
-    disp ('Tempo di simulazione del metodo implicito: ')
-    toc
-    
-    hold on
-    plot(t,Tn(mezzeria,:),'b','LineWidth',3);
-    grid on
-    axis([0 t_tot 0 200]);
-    xlabel('t (s)','FontSize', 12);
-    ylabel('T (°C)','FontSize', 12);
-    set(gca,'FontSize',14);
-
-    %metodo di Crank-Nicolson
-    zita=1/2;
-    tic
-    for it = 1:nt
-        Am = (I-zita.*A);
-        Bm = ((Imod+(1-zita).*A)*Tn(:,it))-B;
-        Tn(:,it+1) = Am\Bm;
-    end
-    disp ('Tempo di simulazione del metodo C-N: ')
-    toc
-        
-    hold on
-    plot(t,Tn(mezzeria,:),'g','LineWidth',3);
-    grid on
-    axis([0 t_tot 0 200]);
-    xlabel('t (s)','FontSize', 12);
-    ylabel('T (°C)','FontSize', 12);
-    set(gca,'FontSize',14);
-    legend('Metodo esplicito','Metodo implicito','Metodo C-N')
-    hold off
-end
